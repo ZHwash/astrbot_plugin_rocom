@@ -1,8 +1,8 @@
 <div align="center">
 
 # 🏰 astrbot\_plugin\_rocom
-# 由于前端正在构建，正式发布前端前可使用测试
-# key：sk-ff14f964051a5c966564e29b5bd3a768
+# 由于前端正在构建，正式发布前端前可使用测试key：
+# sk-ff14f964051a5c966564e29b5bd3a768
 ### *WeGame 洛克王国数据查询*
 
 <img src="https://github.com/user-attachments/assets/446759b3-c9d8-4752-800c-acf47d55e70f" width="400" alt="LOGO">
