@@ -343,19 +343,29 @@ astrbot_plugin_rocom/
 ### v2.8.0 (2026-04-28)
 
 **新增**
-- 🎁 **Wiki百科功能集成（离线版）**：整合 astrbot_plugin_roco_world_wiki_search 插件，提供基于本地数据库的洛克王国百科全书查询（临时方案，替代已关闭的 WeGame API wiki 接口）
-- 📚 **宠物/技能/道具/家具查询**：支持名称、属性、六维、特性、技能列表、立绘图片等详细信息
-- 🔍 **智能搜索**：模糊匹配、自然语言理解、属性克制计算、颜色筛选
-- 🧬 **进化链查询**：完整进化路线展示、下一阶段查询、特定阶段查询、多分支支持
-- 🔮 **视觉识别**：大模型视觉识别颜色，支持按颜色查询宠物、精灵蛋、家具、道具
-- 👨‍💻 **管理员命令**：在线更新数据库、查看统计、批量识别颜色、补全缺失数据
-- 🗣️ **口语化表达**：支持“迪莫会什么技能”、“迪莫怎么进化”等自然语言查询
+-  **Wiki百科功能集成（离线版）**：整合 astrbot_plugin_roco_world_wiki_search 插件，提供基于本地数据库的洛克王国百科全书查询（临时方案，替代已关闭的 WeGame API wiki 接口）
+-  **宠物/技能/道具/家具查询**：支持名称、属性、六维、特性、技能列表、立绘图片等详细信息
+-  **智能搜索**：模糊匹配、自然语言理解、属性克制计算、颜色筛选
+-  **进化链查询**：完整进化路线展示、下一阶段查询、特定阶段查询、多分支支持
+-  **视觉识别**：大模型视觉识别颜色，支持按颜色查询宠物、精灵蛋、家具、道具
+-  **管理员命令**：在线更新数据库、查看统计、批量识别颜色、补全缺失数据
+-  **口语化表达**：支持"迪莫会什么技能"、"迪莫怎么进化"等自然语言查询
 
 **架构优化**
-- 📦 **模块化设计**：Wiki 功能独立在 `wiki/` 目录下，包含爬虫、数据库、工具脚本
-- 🧪 **工具脚本迁移**：将 `tools/fix_missing_pet_data.py` 移至 `wiki/tools/`
-- 📝 **依赖管理**：添加 requests、aiohttp、fake-useragent 等 Wiki 必需依赖
-- ⚙️ **配置分离**：Wiki 配置项使用 `wiki_` 前缀，避免与主项目冲突
+-  **模块化设计**：Wiki 功能独立在 `wiki/` 目录下，包含爬虫、数据库、工具脚本
+-  **工具脚本迁移**：将 `tools/fix_missing_pet_data.py` 移至 `wiki/tools/`
+-  **依赖管理**：添加 requests、aiohttp、fake-useragent 等 Wiki 必需依赖
+-  **配置分离**：Wiki 配置项使用 `wiki_` 前缀，避免与主项目冲突
+
+**文档更新**
+-  **README 完善**：补充 Wiki 功能详解、使用示例、管理员命令说明
+-  **项目结构**：更新目录树，展示 Wiki 模块完整结构
+-  **常见问题**：新增 Wiki 相关 FAQ
+
+**相关资源**
+- 原 Wiki 插件仓库: [astrbot_plugin_roco_world_wiki_search](https://github.com/ZHwash/astrbot_plugin_roco_world_wiki_search)
+- BiliGame 洛克王国 WIKI: https://wiki.biligame.com/rocom/
+- CC BY-NC-SA 4.0 协议: https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans
 
 ### v2.7.0 (2026-04-26)
 
