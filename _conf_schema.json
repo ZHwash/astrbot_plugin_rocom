@@ -109,7 +109,7 @@
   "wiki_query_command": {
     "type": "string",
     "description": "Wiki 查询指令名称",
-    "hint": "不含 / 前缀，如填写\"查询\"则使用 /洛克wiki 查询",
+    "hint": "不含 / 前缀，如填写“查询”则使用 /洛克wiki 查询",
     "default": "查询"
   },
   "wiki_image_keywords": {
