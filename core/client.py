@@ -679,6 +679,52 @@ class RocomClient:
         self._set_last_error(f"玩家搜索任务仍在队列中，请稍后重试（task_id: {task_id}）")
         return None
 
+    async def ingame_home_info(self, uid: str, wait_ms: int = 5000) -> Optional[Dict]:
+        uid = self._sanitize_uid(uid)
+        if not uid:
+            self._set_last_error("UID 不能为空")
+            return None
+
+        path = "/api/v1/games/rocom/ingame/home/info"
+        headers = self._wegame_headers()
+        status_code, data = await self._request_with_status(
+            "POST",
+            path,
+            headers,
+            json_data={"uid": uid, "wait_ms": wait_ms},
+            accepted_statuses=(200, 202),
+        )
+        if status_code == 200:
+            return data
+
+        if status_code is None:
+            status_code, data = await self._request_with_status(
+                "GET",
+                path,
+                headers,
+                params={"uid": uid, "wait_ms": wait_ms},
+                accepted_statuses=(200, 202),
+            )
+            if status_code == 200:
+                return data
+
+        task_id = (data or {}).get("task_id")
+        if not task_id:
+            if status_code == 202:
+                self._set_last_error("家园查询任务已入队，但未返回 task_id")
+            return None
+
+        for _ in range(10):
+            await asyncio.sleep(1)
+            task_status, task_data = await self.get_ingame_task(task_id)
+            if task_status == 200:
+                return task_data
+            if task_status is None:
+                return None
+
+        self._set_last_error(f"家园查询任务仍在队列中，请稍后重试（task_id: {task_id}）")
+        return None
+
     async def ingame_merchant_info(self, shop_id: int | str) -> Optional[Dict]:
         params = {"shop_id": shop_id}
         data = await self._get(

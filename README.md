@@ -12,9 +12,9 @@
 [![GitHub issues](https://img.shields.io/github/issues/Entropy-Increase-Team/astrbot_plugin_rocom?style=for-the-badge\&color=45B7D1)](https://github.com/Entropy-Increase-Team/astrbot_plugin_rocom/issues)
 [![AstrBot](https://img.shields.io/badge/AstrBot-Plugin-FFc65f?style=for-the-badge\&logo=python)](https://github.com/Soulter/AstrBot)
 
-### 🚀 基于 WeGame API & 洛克王国数据 的查询工具 v2.7.0
+### 🚀 基于 WeGame API & 洛克王国数据 的查询工具 v3.0.0
 
-### 扫码绑定 · 个人档案 · 最近战绩 · 精灵背包 · 阵容助手
+### 扫码绑定 · 个人档案 · 家园查询 · 最近战绩 · 精灵背包 · 阵容助手
 
 **如果这个插件对你有帮助，请点亮⭐支持一下！**
 
@@ -43,7 +43,7 @@
 
 ✅ **消息撤回** - 登录链接与二维码超时、完成或被拒时自动撤回，保护账号安全
 
-✅ **数据查询** - 个人档案可视化渲染、近期对战详情、背包精灵图鉴检索、交换大厅、远行商人、阵容推荐
+✅ **数据查询** - 个人档案可视化渲染、家园菜园/守卫/室内精灵、近期对战详情、背包精灵图鉴检索、交换大厅、远行商人、阵容推荐
 
 ✅ **查蛋配种** - 离线蛋组查询、配种兼容性判断，支持精确/模糊/多候选智能匹配，并接入后端尺寸反查
 
@@ -51,9 +51,9 @@
 
 ✅ **阵容助手** - 热门阵容推荐、2x3 网格布局展示、阵容码查询、详细技能配置
 
-✅ **Ingame 查询** - 支持玩家搜索、商店信息、好友关系、学生认证与学生活动等新版文档接口
+✅ **Wiki百科（离线版）** - 基于本地数据库的宠物/技能/道具/家具查询，支持属性克制、颜色筛选、进化链等（数据来自 BiliGame WIKI，CC BY-NC-SA 4.0）
 
-⚠️ **Wiki 状态** - 由于新版后端文档已暂时移除 wiki 接口说明，插件当前仅保留命令占位并提醒接口暂时关闭
+✅ **Ingame 查询** - 支持玩家搜索、商店信息、好友关系、学生认证与学生活动等新版文档接口
 
 ***
 
@@ -85,6 +85,9 @@ playwright install chromium
 | `render_timeout` | number | `30000`                      | 图片渲染超时时间（毫秒）                            |
 | `merchant_subscription_enabled` | bool | `true` | 是否启用远行商人订阅推送（固定在 08:01 / 12:01 / 16:01 / 20:01 检查，空结果每 4 分钟最多重试 3 次） |
 | `merchant_subscription_items` | list | `["国王球","棱镜球","炫彩精灵蛋"]` | 远行商人默认订阅商品 |
+| `merchant_private_subscription_enabled` | bool | `true` | 是否允许用户在私聊中订阅远行商人推送 |
+| `home_subscription_enabled` | bool | `true` | 是否启用家园菜园和精灵灵感订阅推送 |
+| `home_subscription_interval_minutes` | int | `5` | 家园订阅检查间隔（分钟），按首个完成/全部完成两档推送 |
 
 ### 安全免责声明
 
@@ -110,6 +113,25 @@ astrbot_plugin_rocom/
 │   └── users.json          # 用户绑定数据
 ├── img/                    # 各项渲染所需依赖底图
 ├── ttf/                    # 无衬线免税字体库
+├── wiki/                   # Wiki百科模块
+│   ├── src/                # 爬虫和数据服务
+│   │   ├── db_service.py   # 数据库服务
+│   │   ├── pet_detail.py   # 宠物详情爬虫
+│   │   ├── skill_detail.py # 技能详情爬虫
+│   │   ├── item_detail.py  # 道具详情爬虫
+│   │   ├── furniture_detail.py  # 家具详情爬虫
+│   │   ├── color_extractor_vision.py  # 颜色提取器（视觉模型）
+│   │   ├── build_wiki_db.py  # 数据库构建脚本
+│   │   ├── incremental_update.py  # 增量更新脚本
+│   │   └── image_downloader.py  # 图片下载器
+│   ├── tools/              # Wiki维护工具
+│   │   └── fix_missing_pet_data.py  # 数据补全工具
+│   ├── output/             # 输出目录
+│   │   └── images/         # 图片资源
+│   │       ├── pets/       # 宠物图片
+│   │       ├── skills/     # 技能图标
+│   │       └── items/      # 道具/家具图片
+│   └── wiki-local.db       # SQLite 数据库
 └── render/                 # 网页模板资源
     ├── bind-list/          # 绑定列表与多账号面板模板
     ├── menu/               # 帮助菜单模板
@@ -117,6 +139,7 @@ astrbot_plugin_rocom/
     ├── personal-card/      # 洛克档案面板模板
     ├── record/             # 对战回放数据模板
     ├── exchange-hall/      # 洛克交换大厅模板
+    ├── home/               # 洛克家园菜园/守卫/室内精灵模板
     ├── pet-wiki/           # 精灵 wiki 模板
     ├── skill-wiki/         # 技能 wiki 模板
     ├── yuanxing-shangren/  # 远行商人模板
@@ -163,14 +186,67 @@ astrbot_plugin_rocom/
 | `远行商人` | 查询当前轮次远行商人商品 |
 | `洛克商店 <shop_id>` | 实验性功能：通过 ingame 接口查询指定商店信息，接口返回暂不稳定 |
 | `洛克玩家 <UID>` | 通过 ingame 接口查询玩家基础资料，当前推荐优先使用 |
+| `洛克家园 [UID]` | 通过 UID 查询自己或他人的家园菜园、守卫精灵和室内精灵情况 |
+| `订阅家园菜园 [UID]` | 订阅指定 UID 的菜园提醒，首个成熟和全部成熟时各推送一次 |
+| `订阅家园灵感 [UID]` | 订阅指定 UID 的精灵灵感提醒，首个完成和全部完成时各推送一次 |
+| `取消订阅家园 [菜园/灵感/全部] [UID]` | 取消当前会话的家园订阅 |
 | `订阅远行商人 [1/0] [商品...]` | 群主/群管理员/bot管理员可订阅远行商人提醒，`1` 为命中后 `@全体`，`0` 为普通提醒；不填商品则使用 WebUI 默认订阅商品 |
 | `取消订阅远行商人` | 关闭当前群远行商人订阅 |
 | `洛克好友关系 <id1,id2>` | 实验性功能：仅能拿到有限状态字段，关系说明暂不稳定（需登录） |
 | `洛克学生 [area] [account_type]` | 实验性功能：接口信息量有限，当前仅供测试查看（需登录） |
 | `洛克阵容 <分类> <页码>` | 查看热门阵容推荐及组成，2x3 网格布局展示               |
 | `查看阵容 <阵容码>`     | 查看指定阵容的详细信息，包含精灵技能配置                 |
-| `洛克wiki <精灵名>` | 暂不可用：接口暂时关闭，当前返回提示信息 |
-| `洛克技能 <技能名>` | 暂不可用：接口暂时关闭，当前返回提示信息 |
+| `洛克wiki <精灵名>` | 查询精灵详细信息，包括属性、种族值、特性、进化链、技能列表等 |
+| `洛克技能 <技能名>` | 查询技能详细信息，包括威力、PP、效果等 |
+
+### 📚 Wiki百科（离线版）
+
+> ⚠️ **说明**：由于 WeGame API wiki 接口已关闭，本插件采用本地数据库方案作为临时替代。数据来自 [BiliGame 洛克王国 WIKI](https://wiki.biligame.com/rocom/)（CC BY-NC-SA 4.0）。
+
+#### 🔍 查询方式
+
+- **直接查询**：`迪莫`、`喵喵`、`暗突袭`
+- **指令查询**：`/洛克wiki 迪莫`
+- **关键词触发**：`洛克王国 迪莫`、`百科 喵喵`
+
+#### 🔎 高级查询
+
+| 类型 | 示例 |
+|------|------|
+| 属性克制 | `火克草`、`水克火` |
+| 颜色筛选 | `红色宠物`、`蓝色精灵蛋`、`绿色家具` |
+| 属性筛选 | `火系宠物有哪些`、`水系精灵` |
+| 自然语言 | `迪莫会什么技能`、`迪莫怎么进化` |
+
+#### 📊 返回信息
+
+**精灵查询：**
+- 基本信息（编号、名称、属性、形态）
+- 种族值（HP、攻击、魔攻、防御、魔抗、速度）
+- 特性与属性克制关系
+- **进化路线**（包含每个阶段的图片和编号）
+- **技能列表**（包含完整的技能详情：属性、类别、威力、PP、效果）
+
+**技能查询：**
+- 技能名称
+- 属性类型
+- 技能类别（物理/魔法/变化）
+- 威力
+- PP 消耗
+- 技能效果描述
+
+#### ⚙️ 配置项
+
+| 配置项 | 类型 | 默认值 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `wiki_db_path` | string | `./wiki-local.db` | Wiki 数据库文件路径 |
+| `wiki_search_limit` | int | `5` | 搜索结果最大数量 (1-20) |
+| `wiki_enable_fuzzy_search` | bool | `true` | 是否启用模糊搜索 |
+| `wiki_response_style` | string | `简洁` | 响应风格: `简洁`/`详细`/`卡片式` |
+| `wiki_vision_model_config` | string | `` | 视觉模型配置(用于颜色识别) |
+| `wiki_manual_vision_api_key` | string | `` | 手动填写的 API Key |
+| `wiki_manual_vision_base_url` | string | `` | 手动填写的 API Base URL |
+| `wiki_manual_vision_model_id` | string | `` | 手动填写的模型 ID |
 
 ### 🥚 查蛋配种（无需登录）
 
@@ -217,6 +293,10 @@ astrbot_plugin_rocom/
 |:---:|:---:|
 | <img width="1640" height="4348" alt="cf5e99b9fd2bef74b4a39cc5c44ba3a3" src="https://github.com/user-attachments/assets/fa6e756e-b7e5-4f7a-9928-75dbb7931b59" /> | <img width="1280" height="952" alt="54c8265461499be1160ccedf6248f3d4_720" src="https://github.com/user-attachments/assets/06e6e587-364d-4fbf-928c-011c42a9f19f" /> |
 
+| `洛克家园` | `预留展示位` |
+|:---:|:---:|
+| <img width="3840" height="3873" alt="d361600220e182b3da02fd9e2e0a0af9" src="https://github.com/user-attachments/assets/8b0dd3bf-6489-4278-a321-780d732a175c" /> | <img width="3840" height="3873" alt="d361600220e182b3da02fd9e2e0a0af9" src="https://github.com/user-attachments/assets/997f79af-dc31-473b-af60-2a820ae75525" /> |
+
 </details>
 
 ***
@@ -249,10 +329,50 @@ astrbot_plugin_rocom/
 <details>
 <summary>点击展开版本历史</summary>
 
+### v3.0.0 (2026-05-06)
+
+**新增**
+- 新增家园渲染模板，展示家园概览、菜园作物、守卫精灵和室内精灵状态
+- 家园菜园接入本地作物名称与图标映射，展示作物名、图标、成熟状态、产量和可偷次数
+- 家园订阅支持菜园和精灵灵感两类提醒，并按首个完成、全部完成两档推送
+
+**优化**
+- 帮助菜单和 README 同步补充家园查询、家园订阅的新版说明
+- 优化家园模板中灵感完成、灵感收集中、未喂食和守卫中的视觉状态区分
+
+### v2.8.0 (2026-04-28)
+
+**新增**
+-  **Wiki百科功能集成（离线版）**：整合 astrbot_plugin_roco_world_wiki_search 插件，提供基于本地数据库的洛克王国百科全书查询（临时方案，替代已关闭的 WeGame API wiki 接口）
+-  **宠物/技能/道具/家具查询**：支持名称、属性、六维、特性、技能列表、立绘图片等详细信息
+-  **智能搜索**：模糊匹配、自然语言理解、属性克制计算、颜色筛选
+-  **进化链查询**：完整进化路线展示、下一阶段查询、特定阶段查询、多分支支持
+-  **视觉识别**：大模型视觉识别颜色，支持按颜色查询宠物、精灵蛋、家具、道具
+-  **管理员命令**：在线更新数据库、查看统计、批量识别颜色、补全缺失数据
+-  **口语化表达**：支持"迪莫会什么技能"、"迪莫怎么进化"等自然语言查询
+
+**架构优化**
+-  **模块化设计**：Wiki 功能独立在 `wiki/` 目录下，包含爬虫、数据库、工具脚本
+-  **工具脚本迁移**：将 `tools/fix_missing_pet_data.py` 移至 `wiki/tools/`
+-  **依赖管理**：添加 requests、aiohttp、fake-useragent 等 Wiki 必需依赖
+-  **配置分离**：Wiki 配置项使用 `wiki_` 前缀，避免与主项目冲突
+
+**文档更新**
+-  **README 完善**：补充 Wiki 功能详解、使用示例、管理员命令说明
+-  **项目结构**：更新目录树，展示 Wiki 模块完整结构
+-  **常见问题**：新增 Wiki 相关 FAQ
+
+**相关资源**
+- 原 Wiki 插件仓库: [astrbot_plugin_roco_world_wiki_search](https://github.com/ZHwash/astrbot_plugin_roco_world_wiki_search)
+- BiliGame 洛克王国 WIKI: https://wiki.biligame.com/rocom/
+- CC BY-NC-SA 4.0 协议: https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans
+
 ### v2.7.0 (2026-04-26)
 
 **新增**
 - 远行商人订阅更新日志补充：已支持私聊订阅远行商人推送
+- 新增 `/洛克家园 [UID]`，支持通过 UID 查询自己或他人的家园菜园、守卫精灵和室内精灵情况
+- 新增 `/订阅家园菜园`、`/订阅家园灵感` 与 `/取消订阅家园`，支持菜园/灵感首个完成和全部完成两档提醒
 
 **优化**
 - 适配最新后端 UID 搜索队列机制，查询会优先同步等待并在返回 `task_id` 后继续异步轮询任务结果

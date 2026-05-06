@@ -1,7 +1,9 @@
-﻿__pycache__/
+__pycache__/
 *.pyc
 .venv/
 .idea/
 .vscode/
 render/*/temp_*.html
 测试文件/
+AstrBot 插件开发指南*.md
+astrbot_plugin_roco_world_wiki_search/

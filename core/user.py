@@ -208,3 +208,53 @@ class MerchantSubscriptionManager(AsyncDataManager):
     async def get_all_subscriptions(self) -> Dict[str, Dict[str, Any]]:
         async with self.lock:
             return copy.deepcopy(self.data)
+
+
+class HomeSubscriptionManager(AsyncDataManager):
+    """Home garden and pet inspiration subscription storage."""
+
+    def __init__(self, data_dir: str):
+        super().__init__(data_dir, "rocom_home_subscriptions.json", {})
+
+    async def upsert_subscription(self, key: str, subscription: Dict[str, Any]):
+        async with self.lock:
+            self.data[str(key)] = copy.deepcopy(subscription)
+            await self._save()
+
+    async def get_subscription(self, key: str) -> Optional[Dict[str, Any]]:
+        async with self.lock:
+            item = self.data.get(str(key))
+            return copy.deepcopy(item) if item else None
+
+    async def delete_subscription(self, key: str) -> bool:
+        async with self.lock:
+            key = str(key)
+            if key not in self.data:
+                return False
+            del self.data[key]
+            await self._save()
+            return True
+
+    async def delete_matching(self, session_id: str, kind: str = "", uid: str = "") -> int:
+        async with self.lock:
+            session_id = str(session_id)
+            kind = str(kind or "")
+            uid = str(uid or "")
+            keys = []
+            for key, item in self.data.items():
+                if str(item.get("umo", "")) != session_id:
+                    continue
+                if kind and str(item.get("kind", "")) != kind:
+                    continue
+                if uid and str(item.get("uid", "")) != uid:
+                    continue
+                keys.append(key)
+            for key in keys:
+                del self.data[key]
+            if keys:
+                await self._save()
+            return len(keys)
+
+    async def get_all_subscriptions(self) -> Dict[str, Dict[str, Any]]:
+        async with self.lock:
+            return copy.deepcopy(self.data)
