@@ -2603,20 +2603,316 @@ class RocomPlugin(Star):
     @filter.command("洛克wiki")
     async def rocom_wiki(self, event: AstrMessageEvent, name: str = "焰火"):
         """查询精灵 wiki"""
-        yield event.plain_result(
-            f"洛克 wiki 接口当前已在新版后端文档中暂时关闭，插件侧已暂停调用。\n"
-            f"你查询的是：{name}\n"
-            f"待后端重新开放后会恢复该功能。"
-        )
+        if not self.db_service:
+            yield event.plain_result("❌ Wiki 数据库服务未初始化，无法查询。")
+            return
+        
+        name = str(name or "").strip()
+        if not name:
+            yield event.plain_result("请提供精灵名称。用法：/洛克wiki <精灵名>")
+            return
+        
+        # 查询宠物信息
+        results = self.db_service.get_pet_info(name, fuzzy=self.enable_fuzzy_search, limit=self.search_limit)
+        
+        if not results:
+            yield event.plain_result(f"❌ 未找到名为「{name}」的精灵。")
+            return
+        
+        # 如果只有一个结果，直接渲染
+        if len(results) == 1:
+            pet_data = results[0]
+            render_data = self._build_local_wiki_render_data(pet_data, name)
+            img_url = await self.renderer.render_html("render/pet-wiki/index.html", render_data)
+            if img_url:
+                yield event.image_result(img_url)
+            else:
+                yield event.plain_result("❌ 图片渲染失败。")
+            return
+        
+        # 多个结果时，检查是否有精确匹配
+        exact_match = None
+        normalized_name = self._normalize_query_text(name)
+        for pet in results:
+            if self._normalize_query_text(pet.get('name', '')) == normalized_name:
+                exact_match = pet
+                break
+        
+        if exact_match:
+            render_data = self._build_local_wiki_render_data(exact_match, name)
+            img_url = await self.renderer.render_html("render/pet-wiki/index.html", render_data)
+            if img_url:
+                yield event.image_result(img_url)
+            else:
+                yield event.plain_result("❌ 图片渲染失败。")
+            return
+        
+        # 没有精确匹配，列出所有候选
+        candidates = []
+        for i, pet in enumerate(results[:5], 1):
+            element = pet.get('element', '未知')
+            stage = pet.get('stage', '')
+            form = pet.get('form', '')
+            extra = ""
+            if stage:
+                extra += f" [{stage}]"
+            if form:
+                extra += f" ({form})"
+            candidates.append(f"{i}. {pet['name']}{extra} - {element}")
+        
+        msg = f"🔍 找到多个匹配的精灵，请选择：\n\n" + "\n".join(candidates)
+        msg += f"\n\n💡 回复序号或完整名称进行查询"
+        yield event.plain_result(msg)
 
     @filter.command("洛克技能", alias={"技能 wiki"})
     async def rocom_skill(self, event: AstrMessageEvent, name: str = "圣光斩"):
         """查询技能 wiki"""
-        yield event.plain_result(
-            f"技能 wiki 接口当前已在新版后端文档中暂时关闭，插件侧已暂停调用。\n"
-            f"你查询的是：{name}\n"
-            f"待后端重新开放后会恢复该功能。"
-        )
+        if not self.db_service:
+            yield event.plain_result("❌ Wiki 数据库服务未初始化，无法查询。")
+            return
+        
+        name = str(name or "").strip()
+        if not name:
+            yield event.plain_result("请提供技能名称。用法：/洛克技能 <技能名>")
+            return
+        
+        # 查询技能信息
+        results = self.db_service.get_skill_info(name, fuzzy=self.enable_fuzzy_search, limit=self.search_limit)
+        
+        if not results:
+            yield event.plain_result(f"❌ 未找到名为「{name}」的技能。")
+            return
+        
+        # 如果只有一个结果，直接渲染
+        if len(results) == 1:
+            skill_data = results[0]
+            render_data = self._build_local_skill_render_data(skill_data, name)
+            img_url = await self.renderer.render_html("render/skill-wiki/index.html", render_data)
+            if img_url:
+                yield event.image_result(img_url)
+            else:
+                yield event.plain_result("❌ 图片渲染失败。")
+            return
+        
+        # 多个结果时，检查是否有精确匹配
+        exact_match = None
+        normalized_name = self._normalize_query_text(name)
+        for skill in results:
+            if self._normalize_query_text(skill.get('name', '')) == normalized_name:
+                exact_match = skill
+                break
+        
+        if exact_match:
+            render_data = self._build_local_skill_render_data(exact_match, name)
+            img_url = await self.renderer.render_html("render/skill-wiki/index.html", render_data)
+            if img_url:
+                yield event.image_result(img_url)
+            else:
+                yield event.plain_result("❌ 图片渲染失败。")
+            return
+        
+        # 没有精确匹配，列出所有候选
+        candidates = []
+        for i, skill in enumerate(results[:5], 1):
+            element = skill.get('element', '未知')
+            category = skill.get('category', '未知')
+            power = skill.get('power', '?')
+            cost = skill.get('cost', '?')
+            candidates.append(f"{i}. {skill['name']} - {element}/{category} | 威力:{power} PP:{cost}")
+        
+        msg = f"🔍 找到多个匹配的技能，请选择：\n\n" + "\n".join(candidates)
+        msg += f"\n\n💡 回复序号或完整名称进行查询"
+        yield event.plain_result(msg)
+
+    def _build_local_wiki_render_data(self, pet_data: Dict[str, Any], query: str) -> Dict[str, Any]:
+        """将本地数据库的宠物数据转换为模板需要的格式"""
+        import json
+        
+        # 解析属性
+        element_full = pet_data.get('element', '未知')
+        if '+' in element_full:
+            elements = element_full.split('+')
+        else:
+            elements = [element_full]
+        pet_types = [{"name": elem.strip()} for elem in elements if elem.strip()]
+        
+        # 构建种族值
+        pet_stats = [
+            {"label": "HP", "value": int(pet_data.get('hp', 0)), "color": "#4bc074"},
+            {"label": "攻击", "value": int(pet_data.get('physical_attack', 0)), "color": "#e95f5f"},
+            {"label": "魔攻", "value": int(pet_data.get('magic_attack', 0)), "color": "#6f85ff"},
+            {"label": "防御", "value": int(pet_data.get('physical_defense', 0)), "color": "#da9c37"},
+            {"label": "魔抗", "value": int(pet_data.get('magic_defense', 0)), "color": "#18a1a1"},
+            {"label": "速度", "value": int(pet_data.get('speed', 0)), "color": "#9b61ff"},
+        ]
+        total_stats = sum(stat["value"] for stat in pet_stats)
+        
+        # 解析技能列表 - 需要将技能名称转换为完整技能对象
+        sprite_skills = []
+        skills_raw = pet_data.get('skills', '')
+        if skills_raw:
+            try:
+                # skills 字段是技能名称的字符串数组
+                skill_names = json.loads(skills_raw) if isinstance(skills_raw, str) else skills_raw
+                
+                # 对每个技能名称查询详细信息
+                for skill_name in skill_names[:24]:
+                    if isinstance(skill_name, str):
+                        # 查询技能详情
+                        skill_details = self.db_service.get_skill_info(skill_name, fuzzy=False, limit=1)
+                        if skill_details:
+                            skill = skill_details[0]
+                            sprite_skills.append({
+                                "name": skill.get("name", skill_name),
+                                "type": skill.get("element", "未知"),
+                                "category": skill.get("category", "未知"),
+                                "power": skill.get("power", "?"),
+                                "pp": skill.get("cost", "?"),
+                                "effect": skill.get("effect", "暂无描述"),
+                                "level": "-",  # 数据库中可能没有等级信息
+                            })
+                        else:
+                            # 如果查不到技能详情，使用名称作为占位
+                            sprite_skills.append({
+                                "name": skill_name,
+                                "type": "未知",
+                                "category": "未知",
+                                "power": "?",
+                                "pp": "?",
+                                "effect": "暂无描述",
+                                "level": "-",
+                            })
+            except Exception as e:
+                logger.warning(f"⚠️ 解析技能列表失败: {e}")
+        
+        # 构建特性与克制关系
+        traits = []
+        ability_name = pet_data.get('ability', '无')
+        ability_desc = pet_data.get('ability_desc', '暂无特性描述')
+        traits.append({
+            "name": ability_name,
+            "type": "特性",
+            "effect": ability_desc,
+            "type_class": "ability"
+        })
+        
+        # 如果有属性克制数据，添加克制关系
+        # 这里简化处理，实际可以从数据库中查询
+        
+        # 解析进化链 - 需要为每个阶段查询对应的宠物信息
+        pet_evolution = []
+        evolution_stages = pet_data.get('evolution_stages', [])
+        if evolution_stages and isinstance(evolution_stages, list):
+            for stage in evolution_stages:
+                if isinstance(stage, dict):
+                    stage_name = stage.get("name", "")
+                    stage_condition = stage.get("condition", "")
+                    stage_level = stage.get("level", "")
+                    
+                    # 构建条件描述
+                    condition_text = ""
+                    if stage_level:
+                        condition_text = f"{stage_level}级进化"
+                    if stage_condition:
+                        condition_text = stage_condition if condition_text else stage_condition
+                    
+                    # 查询该阶段的宠物信息以获取图片和ID
+                    stage_pet_info = None
+                    if stage_name:
+                        stage_pets = self.db_service.get_pet_info(stage_name, fuzzy=False, limit=1)
+                        if stage_pets:
+                            stage_pet_info = stage_pets[0]
+                    
+                    # 获取该阶段的图片路径
+                    stage_sprite = ""
+                    stage_id = "?"
+                    if stage_pet_info:
+                        stage_id = str(stage_pet_info.get('id', '?'))
+                        sprite_raw = stage_pet_info.get('sprite_image_local', '')
+                        if sprite_raw:
+                            stage_sprite = self._resolve_wiki_path(sprite_raw) if not os.path.isabs(sprite_raw) else sprite_raw
+                            if not os.path.exists(stage_sprite):
+                                stage_sprite = ""
+                    
+                    pet_evolution.append({
+                        "number": stage_id,
+                        "name": stage_name or "未知",
+                        "icon": stage_sprite,
+                        "image": stage_sprite,
+                        "condition": condition_text,
+                        "is_current": stage_name == pet_data.get('name', '')
+                    })
+        
+        # 如果没有进化链数据，创建一个单阶段
+        if not pet_evolution:
+            sprite_image_resolved = ""
+            sprite_image_raw = pet_data.get('sprite_image_local', '')
+            if sprite_image_raw:
+                sprite_image_resolved = self._resolve_wiki_path(sprite_image_raw) if not os.path.isabs(sprite_image_raw) else sprite_image_raw
+            
+            pet_evolution.append({
+                "number": str(pet_data.get('id', '?')),
+                "name": pet_data.get('name', query),
+                "icon": sprite_image_resolved,
+                "image": sprite_image_resolved,
+                "condition": "",
+                "is_current": True
+            })
+        
+        # 构建主图和图标路径
+        sprite_image_raw = pet_data.get('sprite_image_local', '')
+        if sprite_image_raw:
+            sprite_image = self._resolve_wiki_path(sprite_image_raw) if not os.path.isabs(sprite_image_raw) else sprite_image_raw
+            # 检查文件是否存在
+            if not os.path.exists(sprite_image):
+                logger.warning(f"⚠️ 精灵图片不存在: {sprite_image}")
+                sprite_image = ""
+        else:
+            sprite_image = ""
+        
+        main_image = sprite_image if sprite_image else "{{_res_path}}img/roco_icon.png"
+        pet_icon = sprite_image if sprite_image else "{{_res_path}}img/roco_icon.png"
+        
+        # 描述
+        description = pet_data.get('description', '暂无图鉴描述')
+        
+        return {
+            "name": pet_data.get('name', query),
+            "number": str(pet_data.get('id', '???')),
+            "query": query,
+            "form": pet_data.get('form', ''),
+            "pet_types": pet_types,
+            "pet_icon": pet_icon,
+            "main_image": main_image,
+            "total_stats": total_stats,
+            "pet_stats": pet_stats,
+            "description": description,
+            "pet_traits": traits,
+            "pet_evolution": pet_evolution,
+            "sprite_skills": sprite_skills,
+            "updated_at": datetime.now().strftime("%Y-%m-%d"),
+            "wiki_url": "",
+            "commandHint": "💡 /洛克wiki <精灵名> | /洛克技能 <技能名>",
+            "copyright": "AstrBot & WeGame Locke Kingdom Plugin",
+        }
+
+    def _build_local_skill_render_data(self, skill_data: Dict[str, Any], query: str) -> Dict[str, Any]:
+        """将本地数据库的技能数据转换为模板需要的格式"""
+        power = skill_data.get('power', '?')
+        cost = skill_data.get('cost', '?')
+        
+        return {
+            "name": skill_data.get('name', query),
+            "query": query,
+            "attribute": skill_data.get('element', '未知'),
+            "category": skill_data.get('category', '未知'),
+            "cost": cost if cost not in (None, "") else "?",
+            "power": power if power not in (None, "") else "?",
+            "description": skill_data.get('effect', skill_data.get('description', '暂无描述')),
+            "updated_at": datetime.now().strftime("%Y-%m-%d"),
+            "commandHint": "/洛克技能 <技能名>",
+            "copyright": "AstrBot & WeGame Locke Kingdom Plugin",
+        }
 
     @filter.command("远行商人")
     async def rocom_merchant(self, event: AstrMessageEvent):
