@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 import base64
 import tempfile
@@ -19,25 +18,6 @@ from .core.client import RocomClient
 from .core.user import UserManager, MerchantSubscriptionManager, HomeSubscriptionManager
 from .core.render import Renderer
 from .core.egg_service import EggService, SearchResult
-
-# ==================== Wiki 百科查询功能（整合自 InMain 的 astrbot_plugin_roco_world_wiki_search）===================
-# 确保 wiki/src 在 Python 路径中
-plugin_dir = os.path.dirname(os.path.abspath(__file__))
-wiki_src_path = os.path.join(plugin_dir, "wiki", "src")
-if wiki_src_path not in sys.path:
-    sys.path.insert(0, wiki_src_path)
-try:
-    from db_service import WikiDBService
-    from color_extractor_vision import ColorExtractor
-    WIKI_MODULES_LOADED = True
-except ImportError as e:
-    logger.warning(f"⚠️ Wiki模块导入失败: {e}")
-    WIKI_MODULES_LOADED = False
-    WikiDBService = None
-    ColorExtractor = None
-
-# 数据来源声明（CC BY-NC-SA 4.0 协议）
-DATA_SOURCE_NOTICE = "\n\n---\n📎 数据来源: [BiliGame 洛克王国 WIKI](https://wiki.biligame.com/rocom/) | CC BY-NC-SA 4.0"
 
 @register("astrbot_plugin_rocom", "bvzrays & 熵增项目组", "洛克王国插件", "v3.0.0", "https://github.com/Entropy-Increase-Team/astrbot_plugin_rocom")
 class RocomPlugin(Star):
@@ -112,83 +92,6 @@ class RocomPlugin(Star):
             self._home_subscription_task = asyncio.create_task(
                 self._home_subscription_loop()
             )
-        
-        # 初始化Wiki功能（整合自 InMain 的 astrbot_plugin_roco_world_wiki_search）
-        if WIKI_MODULES_LOADED:
-            try:
-                # 数据库路径配置（相对于 wiki/ 目录）
-                db_path_config = self.config.get("wiki_db_path", "wiki-local.db")
-                
-                # 处理路径：支持多种格式
-                # 1. 绝对路径：直接使用
-                # 2. 包含 wiki/ 前缀的路径（如 wiki/wiki-local.db）：提取文件名
-                # 3. 相对路径（如 ./wiki-local.db）：去除 ./ 前缀
-                if os.path.isabs(db_path_config):
-                    db_path = db_path_config
-                else:
-                    # 移除 wiki/ 前缀（如果存在）
-                    clean_path = db_path_config.lstrip('./\\')
-                    if clean_path.startswith('wiki/') or clean_path.startswith('wiki\\'):
-                        clean_path = clean_path[5:]
-                    # 基于 wiki 目录解析路径
-                    wiki_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'wiki')
-                    db_path = os.path.normpath(os.path.join(wiki_dir, clean_path))
-                
-                from .wiki.src.db_service import WikiDBService
-                self.wiki_db_service = WikiDBService(db_path)
-                # 兼容旧代码：db_service 作为 wiki_db_service 的别名
-                self.db_service = self.wiki_db_service
-                logger.info(f"✅ Wiki数据库服务初始化成功: {db_path}")
-                
-                # 初始化颜色提取器配置
-                self._color_extractor = None
-                
-                # 初始化 Wiki 相关配置项（从配置文件读取）
-                self.search_limit = max(self.config.get("wiki_search_limit", 5), 1) or 5
-                self.enable_fuzzy_search = self.config.get("wiki_enable_fuzzy_search", True)
-                self.response_style = self.config.get("wiki_response_style", "简洁")
-                self.trigger_keywords = self.config.get("wiki_trigger_keywords", ["洛克王国", "查询", "百科"])
-                self.query_command = self.config.get("wiki_query_command", "查询")
-                self.image_keywords = self.config.get("wiki_image_keywords", ["图片", "图", "头像", "立绘"])
-                self.page_size = max(5, min(30, self.config.get("wiki_page_size", 10)))
-                
-                # 会话状态管理（用于翻页功能）
-                self.session_states = {}
-                self.session_timeout = 300  # 5分钟
-                
-                logger.info("✅ Wiki功能初始化成功")
-            except Exception as e:
-                logger.error(f"❌ Wiki功能初始化失败: {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-                self.wiki_db_service = None
-                self.db_service = None
-                self._color_extractor = None
-                # 即使失败也要初始化配置项，避免 AttributeError
-                self.search_limit = 5
-                self.enable_fuzzy_search = True
-                self.response_style = "简洁"
-                self.trigger_keywords = ["洛克王国", "查询", "百科"]
-                self.query_command = "查询"
-                self.image_keywords = ["图片", "图", "头像", "立绘"]
-                self.page_size = 10
-                self.session_states = {}
-                self.session_timeout = 300
-        else:
-            self.wiki_db_service = None
-            self.db_service = None
-            self._color_extractor = None
-            # 模块未加载时也要初始化配置项，使用默认值
-            self.search_limit = 5
-            self.enable_fuzzy_search = True
-            self.response_style = "简洁"
-            self.trigger_keywords = ["洛克王国", "查询", "百科"]
-            self.query_command = "查询"
-            self.image_keywords = ["图片", "图", "头像", "立绘"]
-            self.page_size = 10
-            self.session_states = {}
-            self.session_timeout = 300
-            logger.warning("⚠️ Wiki模块未加载，Wiki功能不可用")
 
     async def terminate(self):
         if self._home_subscription_task and not self._home_subscription_task.done():
