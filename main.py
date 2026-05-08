@@ -4971,6 +4971,12 @@ class RocomPlugin(Star):
         cleaned_query = query.strip()
 
         logger.info(f"🔍 原始查询: '{query}'")
+        
+        # 【关键修复】移除所有空格，将 "喵喵 进化" 转换为 "喵喵进化"
+        # 这样可以兼容 AstrBot 按空格分割参数的问题
+        if ' ' in cleaned_query:
+            logger.info(f"🔧 检测到空格，移除所有空格: '{cleaned_query}' -> '{cleaned_query.replace(' ', '')}'")
+            cleaned_query = cleaned_query.replace(' ', '')
 
         # 移除游戏名称前缀（按长度排序，优先匹配长的）
         for prefix in sorted(['洛克王国', '洛克'], key=len, reverse=True):
