@@ -44,6 +44,25 @@ except ImportError as e:
 # 数据来源声明（CC BY-NC-SA 4.0 协议）
 DATA_SOURCE_NOTICE = "\n\n---\n📚 数据来源: [BiliGame 洛克王国 WIKI](https://wiki.biligame.com/rocom/) | CC BY-NC-SA 4.0"
 
+# Wiki百科功能简略帮助信息
+WIKI_HELP_TEXT = (
+    "📚 **Wiki百科（离线版）功能指引**\n"
+    "━━━━━━━━━━━━━━\n\n"
+    "🔍 **基础查询：**\n"
+    "  • `/查询 <精灵名>` - 查询精灵详细信息\n"
+    "  • `/查询 <技能名>` - 查询技能详细信息\n"
+    "  • `迪莫`、`喵喵`、`暗突袭` - 直接输入名称也可查询\n\n"
+    "🎯 **高级查询：**\n"
+    "  • `火克草`、`水克火` - 属性克制查询\n"
+    "  • `红色宠物`、`蓝色精灵蛋` - 颜色筛选\n"
+    "  • `火系宠物有哪些` - 属性筛选\n"
+    "  • `所有分支进化` - 查询有分支进化的精灵列表\n"
+    "  • `迪莫会什么技能`、`迪莫怎么进化` - 自然语言查询\n\n"
+    "🖼️ **图片查询：**\n"
+    "  • `/查询 迪莫 图片` - 只返回精灵图片\n\n"
+    "💡 数据来自 BiliGame 洛克王国 WIKI (CC BY-NC-SA 4.0)"
+)
+
 @register("astrbot_plugin_rocom", "bvzrays & 熵增项目组", "洛克王国插件", "v3.0.0", "https://github.com/Entropy-Increase-Team/astrbot_plugin_rocom")
 class RocomPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
@@ -5114,6 +5133,9 @@ class RocomPlugin(Star):
             # 无空格拼接
             (r'^(.+?)进化$', 'evolution'),
 
+            # ====== 分支进化列表 ======
+            (r'(?:所有|全部)?(?:分支进化|有分支进化)(?:的)?(?:精灵|宠物|魔灵)?(?:有哪些|列表)?$', 'branch_evolution_list'),
+
             # ====== 技能石相关 ======
             (r'^(.+?)技能石$', 'skill_stones'),
         ]
@@ -5550,6 +5572,33 @@ class RocomPlugin(Star):
             else:
                 response += "  (暂无进化信息)"
 
+            return response
+
+        elif detail_type == 'branch_evolution_list':
+            # 获取所有有分支进化的精灵列表
+            branch_pets = self.db_service.get_branch_evolution_pets()
+            
+            if not branch_pets:
+                return "❌ 未找到有分支进化的精灵"
+            
+            response = "🔀 **有分支进化的精灵（初始形态）**\n"
+            response += "━━━━━━━━━━━━━━\n\n"
+            response += f"共找到 {len(branch_pets)} 个有分支进化的精灵：\n\n"
+            
+            # 分组显示，每行5个
+            for i, name in enumerate(branch_pets, 1):
+                response += f"{i}. {name}"
+                if i % 5 == 0 or i == len(branch_pets):
+                    response += "\n"
+                else:
+                    response += "  |  "
+            
+            response += "\n💡 **提示：** 使用以下命令查看具体精灵的进化路线：\n"
+            response += "  • `/查询 [精灵名] 进化`\n"
+            response += "  • `/查询 [精灵名] 进化链`\n"
+            response += "  • `/查询 [精灵名] 进化路线`\n"
+            response += DATA_SOURCE_NOTICE
+            
             return response
 
         else:
