@@ -49,9 +49,9 @@ WIKI_HELP_TEXT = (
     "📚 **Wiki百科（离线版）功能指引**\n"
     "━━━━━━━━━━━━━━\n\n"
     "🔍 **基础查询：**\n"
-    "  • `/查询 <精灵名>` - 查询精灵详细信息\n"
-    "  • `/查询 <技能名>` - 查询技能详细信息\n"
-    "  • `迪莫`、`喵喵`、`暗突袭` - 直接输入名称也可查询\n\n"
+    "  • `百科 <精灵名>` - 查询精灵详细信息\n"
+    "  • `百科 <技能名>` - 查询技能详细信息\n"
+    "  • `洛克王国 迪莫`、`喵喵`、`暗突袭` - 直接输入名称也可查询\n\n"
     "🎯 **高级查询：**\n"
     "  • `火克草`、`水克火` - 属性克制查询\n"
     "  • `红色宠物`、`蓝色精灵蛋` - 颜色筛选\n"
@@ -59,7 +59,7 @@ WIKI_HELP_TEXT = (
     "  • `所有分支进化` - 查询有分支进化的精灵列表\n"
     "  • `迪莫会什么技能`、`迪莫怎么进化` - 自然语言查询\n\n"
     "🖼️ **图片查询：**\n"
-    "  • `/查询 迪莫 图片` - 只返回精灵图片\n\n"
+    "  • `百科 迪莫 图片` - 只返回精灵图片\n\n"
     "💡 数据来自 BiliGame 洛克王国 WIKI (CC BY-NC-SA 4.0)"
 )
 
@@ -5603,9 +5603,9 @@ class RocomPlugin(Star):
                     response += "  |  "
             
             response += "\n💡 **提示：** 使用以下命令查看具体精灵的进化路线：\n"
-            response += "  • `/查询 [精灵名] 进化`\n"
-            response += "  • `/查询 [精灵名] 进化链`\n"
-            response += "  • `/查询 [精灵名] 进化路线`\n"
+            response += "  • `百科 [精灵名] 进化`\n"
+            response += "  • `百科 [精灵名] 进化链`\n"
+            response += "  • `百科 [精灵名] 进化路线`\n"
             response += DATA_SOURCE_NOTICE
             
             return response
@@ -7587,145 +7587,6 @@ class RocomPlugin(Star):
         else:
             yield event.plain_result(f"❌ 未知命令: {cmd}\n\n📋 可用命令:\n  • update - 增量更新数据库\n  • status - 查看数据库状态\n  • tag-colors - 为道具标记颜色\n  • tag-pet-colors - 为宠物标记颜色\n  • force-tag-colors - 强制重新识别所有道具颜色\n  • force-tag-pet-colors - 强制重新识别所有宠物颜色\n  • fix-missing - 补全缺失的宠物数据\n  • check-vision - 检查视觉模型配置\n\n示例: 洛克管理 check-vision")
 
-    @filter.command("查询", ["query", "wiki"])
-    async def handle_query(self, event: AstrMessageEvent, content: str = ""):
-        """
-        处理查询命令
-        用法: /查询 <宠物/技能名称>
-              /查询 <宠物/技能名称> 图片 (只返回图片)
-              /查询 <宠物/技能名称> 进化 (查看进化链)
-        """
-
-        # 从 event.message_str 中提取完整参数，避免 AstrBot 按空格拆分
-        full_command = event.message_str or ""
-        if "/查询" in full_command or "/query" in full_command or "/wiki" in full_command:
-            # 提取命令后的所有内容
-            for prefix in ["/查询", "/query", "/wiki"]:
-                if prefix in full_command:
-                    content = full_command.split(prefix, 1)[1].strip()
-                    break
-        
-        # 参数验证 - 如果没有输入内容，提示使用帮助指令
-        if not content or len(content.strip()) < 1:
-            yield "❌ 请输入要查询的宠物或技能名称\n💡 输入 `/wiki帮助` 查看Wiki功能指引"
-            return
-
-        content = content.strip()
-
-        # 检查数据库服务是否可用
-        if not self.db_service:
-            yield "❌ 数据库服务不可用，请联系管理员检查配置"
-            return
-
-        # 检测是否是图片检索请求
-        is_image_query, clean_content = self._extract_image_query(content)
-
-        if is_image_query:
-            logger.info(f"🖼️ 图片检索模式: {clean_content}")
-            async for msg in self._handle_image_only_query(event, clean_content):
-                yield msg
-            return
-
-        # 检测是否是进化相关查询（优先处理）
-        query_intent = self._analyze_query_intent(content)
-        if query_intent.get('type') == 'pet_detail' and query_intent.get('detail_type') == 'evolution':
-            pet_name = query_intent.get('pet_name', '')
-            logger.info(f"🎯 /查询命令检测到进化查询: 宠物='{pet_name}'")
-            
-            # 使用宠物名查询
-            pets = self.db_service.get_pet_info(
-                pet_name,
-                fuzzy=self.enable_fuzzy_search,
-                limit=1
-            )
-            
-            if pets:
-                pet = pets[0]
-                response = self._format_pet_detail_info(pet, 'evolution')
-                response += DATA_SOURCE_NOTICE
-                yield event.plain_result(response)
-                return
-            else:
-                yield event.plain_result(f"❌ 未找到宠物 \"{pet_name}\"")
-                return
-
-        # 先尝试查询宠物
-        pets = self.db_service.get_pet_info(
-            content,
-            fuzzy=self.enable_fuzzy_search,
-            limit=self.search_limit
-        )
-
-        if pets:
-            # 找到宠物，格式化返回
-            if len(pets) == 1:
-                # 精确匹配，返回详细信息 + 图片
-                pet = pets[0]
-                response = self._format_pet_response(pet)
-
-                # 尝试获取宠物图片
-                image_path = pet.get('sprite_image_local')
-                if image_path and os.path.exists(image_path):
-                    # 有本地图片，发送文字+图片
-                    response_with_source = response + DATA_SOURCE_NOTICE
-                    yield event.plain_result(response_with_source)
-                    yield event.image_result(image_path)
-                else:
-                    # 没有图片，只发送文字
-                    response_with_source = response + DATA_SOURCE_NOTICE
-                    yield event.plain_result(response_with_source)
-            else:
-                # 多个结果，返回列表
-                response = f"🔍 找到 {len(pets)} 个相关宠物:\n\n"
-                for i, pet in enumerate(pets[:self.search_limit], 1):
-                    response += f"{i}. {pet['name']} ({pet['element']}系)\n"
-
-                response += DATA_SOURCE_NOTICE
-                yield event.plain_result(response)
-            return
-
-        # 再尝试查询技能
-        skills = self.db_service.get_skill_info(
-            content,
-            fuzzy=self.enable_fuzzy_search,
-            limit=self.search_limit
-        )
-
-        if skills:
-            # 找到技能，格式化返回
-            if len(skills) == 1:
-                response = self._format_skill_response(skills[0])
-            else:
-                response = f"🔍 找到 {len(skills)} 个相关技能:\n\n"
-                for i, skill in enumerate(skills[:self.search_limit], 1):
-                    response += f"{i}. {skill['name']} ({skill['element']}系, 威力:{skill['power']})\n"
-
-            response += DATA_SOURCE_NOTICE
-            yield event.plain_result(response)
-            return
-
-        # 最后尝试搜索 Wiki 页面
-        pages = self.db_service.search_wiki_page(
-            content,
-            fuzzy=self.enable_fuzzy_search,
-            limit=self.search_limit
-        )
-
-        if pages:
-            response = f"📄 找到 {len(pages)} 个相关页面:\n\n"
-            for i, page in enumerate(pages[:self.search_limit], 1):
-                response += f"{i}. **{page['title']}** ({page['page_type']})\n"
-                if page['preview']:
-                    response += f"   _{page['preview'][:50]}..._\n"
-                response += "\n"
-
-            response += DATA_SOURCE_NOTICE
-            yield event.plain_result(response)
-            return
-
-        # 未找到任何结果
-        yield f"❌ 未找到与 \"{content}\" 相关的信息\n💡 输入 `/wiki帮助` 查看可用功能"
-
     async def _handle_image_only_query(self, event: AstrMessageEvent, query: str):
         """
         处理纯图片检索请求（只返回图片，不返回文字）
@@ -8002,9 +7863,9 @@ class RocomPlugin(Star):
                     response += "  |  "
             
             response += "\n💡 **提示：** 使用以下命令查看具体精灵的进化路线：\n"
-            response += "  • `/查询 [精灵名] 进化`\n"
-            response += "  • `/查询 [精灵名] 进化链`\n"
-            response += "  • `/查询 [精灵名] 进化路线`\n"
+            response += "  • `百科 [精灵名] 进化`\n"
+            response += "  • `百科 [精灵名] 进化链`\n"
+            response += "  • `百科 [精灵名] 进化路线`\n"
             response += DATA_SOURCE_NOTICE
             yield event.plain_result(response)
             return
