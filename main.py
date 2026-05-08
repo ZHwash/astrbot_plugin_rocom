@@ -7591,6 +7591,7 @@ class RocomPlugin(Star):
         """
         显示Wiki百科功能指引
         """
+        event.stop_event()
         yield WIKI_HELP_TEXT
 
     @filter.command("查询", ["query", "wiki"])
