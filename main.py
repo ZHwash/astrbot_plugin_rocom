@@ -7604,9 +7604,9 @@ class RocomPlugin(Star):
                     content = full_command.split(prefix, 1)[1].strip()
                     break
         
-        # 参数验证
+        # 参数验证 - 如果没有输入内容，显示Wiki帮助
         if not content or len(content.strip()) < 1:
-            yield "❌ 请输入要查询的宠物或技能名称！\n示例: /查询 喵喵\n示例: /查询 喵喵 图片\n示例: /查询 喵喵 进化"
+            yield WIKI_HELP_TEXT
             return
 
         content = content.strip()
@@ -7722,8 +7722,10 @@ class RocomPlugin(Star):
             yield event.plain_result(response)
             return
 
-        # 未找到任何结果
-        yield f"❌ 未找到与 \"{content}\" 相关的信息\n💡 提示: 可以尝试其他关键词或检查拼写"
+        # 未找到任何结果，显示Wiki帮助
+        response = f"❌ 未找到与 \"{content}\" 相关的信息\n\n"
+        response += WIKI_HELP_TEXT
+        yield event.plain_result(response)
 
     async def _handle_image_only_query(self, event: AstrMessageEvent, query: str):
         """
@@ -8431,7 +8433,10 @@ class RocomPlugin(Star):
                 yield event.plain_result(response)
             return
 
-        yield event.plain_result(f"❌ 未找到与 \"{query_content}\" 相关的信息\n💡 提示：可以尝试只输入宠物名、技能名、编号或属性克制关系\n{DATA_SOURCE_NOTICE}")
+        # 未找到任何结果，显示Wiki帮助
+        response = f"❌ 未找到与 \"{query_content}\" 相关的信息\n\n"
+        response += WIKI_HELP_TEXT
+        yield event.plain_result(response)
 
     def _cleanup_expired_sessions(self):
         """
