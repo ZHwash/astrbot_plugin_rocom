@@ -7592,11 +7592,21 @@ class RocomPlugin(Star):
         处理查询命令
         用法: /查询 <宠物/技能名称>
               /查询 <宠物/技能名称> 图片 (只返回图片)
+              /查询 <宠物/技能名称> 进化 (查看进化链)
         """
 
+        # 从 event.message_str 中提取完整参数，避免 AstrBot 按空格拆分
+        full_command = event.message_str or ""
+        if "/查询" in full_command or "/query" in full_command or "/wiki" in full_command:
+            # 提取命令后的所有内容
+            for prefix in ["/查询", "/query", "/wiki"]:
+                if prefix in full_command:
+                    content = full_command.split(prefix, 1)[1].strip()
+                    break
+        
         # 参数验证
         if not content or len(content.strip()) < 1:
-            yield "❌ 请输入要查询的宠物或技能名称！\n示例: /查询 喵喵\n示例: /查询 喵喵 图片"
+            yield "❌ 请输入要查询的宠物或技能名称！\n示例: /查询 喵喵\n示例: /查询 喵喵 图片\n示例: /查询 喵喵 进化"
             return
 
         content = content.strip()
