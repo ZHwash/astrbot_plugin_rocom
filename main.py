@@ -7941,7 +7941,29 @@ class RocomPlugin(Star):
         # 如果是分支进化列表查询
         if query_intent.get('type') == 'branch_evolution_list':
             logger.info(f"🎯 检测到分支进化列表查询")
-            response = self._format_pet_detail_info('', 'branch_evolution_list')
+            # 直接调用数据库服务获取分支进化列表
+            branch_pets = self.db_service.get_branch_evolution_pets()
+            
+            if not branch_pets:
+                yield event.plain_result("❌ 未找到有分支进化的精灵")
+                return
+            
+            response = "🔀 **有分支进化的精灵（初始形态）**\n"
+            response += "━━━━━━━━━━━━━━\n\n"
+            response += f"共找到 {len(branch_pets)} 个有分支进化的精灵：\n\n"
+            
+            # 分组显示，每行5个
+            for i, name in enumerate(branch_pets, 1):
+                response += f"{i}. {name}"
+                if i % 5 == 0 or i == len(branch_pets):
+                    response += "\n"
+                else:
+                    response += "  |  "
+            
+            response += "\n💡 **提示：** 使用以下命令查看具体精灵的进化路线：\n"
+            response += "  • `/查询 [精灵名] 进化`\n"
+            response += "  • `/查询 [精灵名] 进化链`\n"
+            response += "  • `/查询 [精灵名] 进化路线`\n"
             response += DATA_SOURCE_NOTICE
             yield event.plain_result(response)
             return
