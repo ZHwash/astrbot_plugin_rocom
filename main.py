@@ -5143,6 +5143,14 @@ class RocomPlugin(Star):
         for pattern, detail_type in detail_patterns:
             match = re.search(pattern, cleaned_query)
             if match:
+                # 分支进化列表是特殊类型，不需要提取名称
+                if detail_type == 'branch_evolution_list':
+                    logger.info(f"🎯 匹配到分支进化列表查询: pattern='{pattern}'")
+                    return {
+                        'type': 'branch_evolution_list'
+                    }
+                
+                # 其他类型需要提取名称
                 name = match.group(1).strip()
                 # 清理宠物名末尾的"的"字（防止"迪莫的"被当作宠物名）
                 if name.endswith('的'):
@@ -7929,6 +7937,14 @@ class RocomPlugin(Star):
                     # 未找到宠物
                     yield event.plain_result(f"❌ 未找到宠物 \"{pet_name}\"")
                     return
+
+        # 如果是分支进化列表查询
+        if query_intent.get('type') == 'branch_evolution_list':
+            logger.info(f"🎯 检测到分支进化列表查询")
+            response = self._format_pet_detail_info('', 'branch_evolution_list')
+            response += DATA_SOURCE_NOTICE
+            yield event.plain_result(response)
+            return
 
         # 如果是技能石查询意图
         if query_intent.get('type') == 'skill_stone_info':
