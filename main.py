@@ -7615,6 +7615,29 @@ class RocomPlugin(Star):
                 yield msg
             return
 
+        # 检测是否是进化相关查询（优先处理）
+        query_intent = self._analyze_query_intent(content)
+        if query_intent.get('type') == 'pet_detail' and query_intent.get('detail_type') == 'evolution':
+            pet_name = query_intent.get('pet_name', '')
+            logger.info(f"🎯 /查询命令检测到进化查询: 宠物='{pet_name}'")
+            
+            # 使用宠物名查询
+            pets = self.db_service.get_pet_info(
+                pet_name,
+                fuzzy=self.enable_fuzzy_search,
+                limit=1
+            )
+            
+            if pets:
+                pet = pets[0]
+                response = self._format_pet_detail_info(pet, 'evolution')
+                response += DATA_SOURCE_NOTICE
+                yield event.plain_result(response)
+                return
+            else:
+                yield event.plain_result(f"❌ 未找到宠物 \"{pet_name}\"")
+                return
+
         # 先尝试查询宠物
         pets = self.db_service.get_pet_info(
             content,
