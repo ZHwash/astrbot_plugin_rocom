@@ -7586,14 +7586,6 @@ class RocomPlugin(Star):
         else:
             yield event.plain_result(f"❌ 未知命令: {cmd}\n\n📋 可用命令:\n  • update - 增量更新数据库\n  • status - 查看数据库状态\n  • tag-colors - 为道具标记颜色\n  • tag-pet-colors - 为宠物标记颜色\n  • force-tag-colors - 强制重新识别所有道具颜色\n  • force-tag-pet-colors - 强制重新识别所有宠物颜色\n  • fix-missing - 补全缺失的宠物数据\n  • check-vision - 检查视觉模型配置\n\n示例: 洛克管理 check-vision")
 
-    @filter.command("wiki帮助", ["wiki-help", "wiki_help"])
-    async def handle_wiki_help(self, event: AstrMessageEvent):
-        """
-        显示Wiki百科功能指引
-        """
-        event.stop_event()
-        yield WIKI_HELP_TEXT
-
     @filter.command("查询", ["query", "wiki"])
     async def handle_query(self, event: AstrMessageEvent, content: str):
         """
@@ -7877,6 +7869,13 @@ class RocomPlugin(Star):
             event.stop_event()
             async for msg in self._handle_page_navigation(event, 'prev'):
                 yield msg
+            return
+
+        # 检查是否是wiki帮助命令
+        wiki_help_commands = ['/wiki帮助', '/wiki-help', '/wiki_help', 'wiki帮助', 'wiki-help', 'wiki_help']
+        if message_str in wiki_help_commands or any(message_str.startswith(cmd) for cmd in wiki_help_commands):
+            event.stop_event()
+            yield WIKI_HELP_TEXT
             return
 
         # 检查是否是管理员命令（关键词触发）
