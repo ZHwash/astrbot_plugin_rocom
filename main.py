@@ -7586,6 +7586,13 @@ class RocomPlugin(Star):
         else:
             yield event.plain_result(f"❌ 未知命令: {cmd}\n\n📋 可用命令:\n  • update - 增量更新数据库\n  • status - 查看数据库状态\n  • tag-colors - 为道具标记颜色\n  • tag-pet-colors - 为宠物标记颜色\n  • force-tag-colors - 强制重新识别所有道具颜色\n  • force-tag-pet-colors - 强制重新识别所有宠物颜色\n  • fix-missing - 补全缺失的宠物数据\n  • check-vision - 检查视觉模型配置\n\n示例: 洛克管理 check-vision")
 
+    @filter.command("wiki帮助", ["wiki-help", "wiki_help"])
+    async def handle_wiki_help(self, event: AstrMessageEvent):
+        """
+        显示Wiki百科功能指引
+        """
+        yield WIKI_HELP_TEXT
+
     @filter.command("查询", ["query", "wiki"])
     async def handle_query(self, event: AstrMessageEvent, content: str):
         """
@@ -7604,9 +7611,9 @@ class RocomPlugin(Star):
                     content = full_command.split(prefix, 1)[1].strip()
                     break
         
-        # 参数验证 - 如果没有输入内容，显示Wiki帮助
+        # 参数验证 - 如果没有输入内容，提示使用帮助指令
         if not content or len(content.strip()) < 1:
-            yield WIKI_HELP_TEXT
+            yield "❌ 请输入要查询的宠物或技能名称\n💡 输入 `/wiki帮助` 查看Wiki功能指引"
             return
 
         content = content.strip()
@@ -7722,10 +7729,8 @@ class RocomPlugin(Star):
             yield event.plain_result(response)
             return
 
-        # 未找到任何结果，显示Wiki帮助
-        response = f"❌ 未找到与 \"{content}\" 相关的信息\n\n"
-        response += WIKI_HELP_TEXT
-        yield event.plain_result(response)
+        # 未找到任何结果
+        yield f"❌ 未找到与 \"{content}\" 相关的信息\n💡 输入 `/wiki帮助` 查看可用功能"
 
     async def _handle_image_only_query(self, event: AstrMessageEvent, query: str):
         """
@@ -8433,10 +8438,8 @@ class RocomPlugin(Star):
                 yield event.plain_result(response)
             return
 
-        # 未找到任何结果，显示Wiki帮助
-        response = f"❌ 未找到与 \"{query_content}\" 相关的信息\n\n"
-        response += WIKI_HELP_TEXT
-        yield event.plain_result(response)
+        # 未找到任何结果
+        yield event.plain_result(f"❌ 未找到与 \"{query_content}\" 相关的信息\n💡 输入 `/wiki帮助` 查看可用功能")
 
     def _cleanup_expired_sessions(self):
         """
