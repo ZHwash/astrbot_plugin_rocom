@@ -170,8 +170,7 @@ class RocomPlugin(Star):
                 self.search_limit = max(self.config.get("wiki_search_limit", 5), 1) or 5
                 self.enable_fuzzy_search = self.config.get("wiki_enable_fuzzy_search", True)
                 self.response_style = self.config.get("wiki_response_style", "简洁")
-                self.trigger_keywords = self.config.get("wiki_trigger_keywords", ["洛克王国", "查询", "百科"])
-                self.query_command = self.config.get("wiki_query_command", "查询")
+                self.trigger_keywords = self.config.get("wiki_trigger_keywords", ["洛克王国", "百科"])
                 self.image_keywords = self.config.get("wiki_image_keywords", ["图片", "图", "头像", "立绘"])
                 self.page_size = max(5, min(30, self.config.get("wiki_page_size", 10)))
 
@@ -191,8 +190,7 @@ class RocomPlugin(Star):
                 self.search_limit = 5
                 self.enable_fuzzy_search = True
                 self.response_style = "简洁"
-                self.trigger_keywords = ["洛克王国", "查询", "百科"]
-                self.query_command = "查询"
+                self.trigger_keywords = ["洛克王国", "百科"]
                 self.image_keywords = ["图片", "图", "头像", "立绘"]
                 self.page_size = 10
                 self.session_states = {}
@@ -205,8 +203,7 @@ class RocomPlugin(Star):
             self.search_limit = 5
             self.enable_fuzzy_search = True
             self.response_style = "简洁"
-            self.trigger_keywords = ["洛克王国", "查询", "百科"]
-            self.query_command = "查询"
+            self.trigger_keywords = ["洛克王国", "百科"]
             self.image_keywords = ["图片", "图", "头像", "立绘"]
             self.page_size = 10
             self.session_states = {}
@@ -4638,8 +4635,7 @@ class RocomPlugin(Star):
             self.search_limit = max(self.config.get("wiki_search_limit", 5), 1) or 5
             self.enable_fuzzy_search = self.config.get("wiki_enable_fuzzy_search", True)
             self.response_style = self.config.get("wiki_response_style", "简洁")
-            self.trigger_keywords = self.config.get("wiki_trigger_keywords", ["洛克王国", "查询", "百科"])
-            self.query_command = self.config.get("wiki_query_command", "查询")
+            self.trigger_keywords = self.config.get("wiki_trigger_keywords", ["洛克王国", "百科"])
             self.image_keywords = self.config.get("wiki_image_keywords", ["图片", "图", "头像", "立绘"])
 
             # 分页配置
@@ -4666,7 +4662,6 @@ class RocomPlugin(Star):
             logger.info(f"   - 模糊搜索: {'开启' if self.enable_fuzzy_search else '关闭'}")
             logger.info(f"   - 搜索限制: {self.search_limit}")
             logger.info(f"   - 触发关键词: {', '.join(self.trigger_keywords)}")
-            logger.info(f"   - 查询指令: /{self.query_command}")
             logger.info(f"   - 分页大小: {self.page_size} 条/页")
             logger.info(f"   - 图片检索词: {', '.join(self.image_keywords)}")
 

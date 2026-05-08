@@ -100,17 +100,11 @@
   "wiki_trigger_keywords": {
     "type": "list",
     "description": "Wiki 触发关键词",
-    "hint": "包含这些关键词的消息会触发 Wiki 查询",
-    "default": ["洛克王国", "查询", "百科"],
+    "hint": "包含这些关键词的消息会触发 Wiki 查询（不含指令前缀，如'百科'、'洛克王国'）",
+    "default": ["洛克王国", "百科"],
     "items": {
       "type": "string"
     }
-  },
-  "wiki_query_command": {
-    "type": "string",
-    "description": "Wiki 查询指令名称",
-    "hint": "不含 / 前缀",
-    "default": "查询"
   },
   "wiki_image_keywords": {
     "type": "list",
