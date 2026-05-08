@@ -7587,7 +7587,7 @@ class RocomPlugin(Star):
             yield event.plain_result(f"❌ 未知命令: {cmd}\n\n📋 可用命令:\n  • update - 增量更新数据库\n  • status - 查看数据库状态\n  • tag-colors - 为道具标记颜色\n  • tag-pet-colors - 为宠物标记颜色\n  • force-tag-colors - 强制重新识别所有道具颜色\n  • force-tag-pet-colors - 强制重新识别所有宠物颜色\n  • fix-missing - 补全缺失的宠物数据\n  • check-vision - 检查视觉模型配置\n\n示例: 洛克管理 check-vision")
 
     @filter.command("查询", ["query", "wiki"])
-    async def handle_query(self, event: AstrMessageEvent, content: str):
+    async def handle_query(self, event: AstrMessageEvent, content: str = ""):
         """
         处理查询命令
         用法: /查询 <宠物/技能名称>
