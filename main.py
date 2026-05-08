@@ -7875,7 +7875,7 @@ class RocomPlugin(Star):
         wiki_help_commands = ['/wiki帮助', '/wiki-help', '/wiki_help', 'wiki帮助', 'wiki-help', 'wiki_help']
         if message_str in wiki_help_commands or any(message_str.startswith(cmd) for cmd in wiki_help_commands):
             event.stop_event()
-            yield WIKI_HELP_TEXT
+            yield event.plain_result(WIKI_HELP_TEXT)
             return
 
         # 检查是否是管理员命令（关键词触发）
